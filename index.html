@@ -64,42 +64,50 @@
     };
 
     const transformMilestones = (rows) => {
-      return rows.map(row => {
-        const milestone = {
-          id: row.id,
-          type: row.type,
-          date: row.date || null,
-          title: row.title,
-          subtitle: row.subtitle || null,
-          description: row.description || null,
-          status: row.status,
-          isRisk: row.isRisk === 'TRUE' || row.isRisk === true,
-          isCatalyst: row.isCatalyst === 'TRUE' || row.isCatalyst === true,
-          isOutcome: row.isOutcome === 'TRUE' || row.isOutcome === true,
-          isStatutory: row.type === 'statutory',
-          catalystOrder: row.catalystOrder ? parseInt(row.catalystOrder) : null
-        };
-        const details = {};
-        Object.keys(row).forEach(key => {
-          if (key.startsWith('details_') && row[key]) {
-            const detailKey = key.replace('details_', '').replace(/_/g, '.');
-            let value = row[key];
-            if (typeof value === 'string' && value.includes('|')) {
-              value = value.split('|').map(s => s.trim());
-            }
-            const keys = detailKey.split('.');
-            if (keys.length === 1) {
-              details[keys[0]] = value;
-            } else {
-              if (!details[keys[0]]) details[keys[0]] = {};
-              details[keys[0]][keys[1]] = value;
-            }
-          }
-        });
-        if (Object.keys(details).length > 0) milestone.details = details;
-        return milestone;
-      }).filter(m => m.id);
+  const parseDate = (d) => {
+    if (!d) return null;
+    if (typeof d === 'string' && d.startsWith('Date(')) {
+      const m = d.match(/Date\((\d+),(\d+),(\d+)\)/);
+      if (m) return `${m[1]}-${String(Number(m[2])+1).padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+    }
+    return d;
+  };
+  return rows.map(row => {
+    const milestone = {
+      id: row.id,
+      type: row.type,
+      date: parseDate(row.date),
+      title: row.title,
+      subtitle: row.subtitle || null,
+      description: row.description || null,
+      status: row.status,
+      isRisk: row.isRisk === 'TRUE' || row.isRisk === true,
+      isCatalyst: row.isCatalyst === 'TRUE' || row.isCatalyst === true,
+      isOutcome: row.isOutcome === 'TRUE' || row.isOutcome === true,
+      isStatutory: row.type === 'statutory',
+      catalystOrder: row.catalystOrder ? parseInt(row.catalystOrder) : null
     };
+    const details = {};
+    Object.keys(row).forEach(key => {
+      if (key.startsWith('details_') && row[key]) {
+        const detailKey = key.replace('details_', '').replace(/_/g, '.');
+        let value = row[key];
+        if (typeof value === 'string' && value.includes('|')) {
+          value = value.split('|').map(s => s.trim());
+        }
+        const keys = detailKey.split('.');
+        if (keys.length === 1) {
+          details[keys[0]] = value;
+        } else {
+          if (!details[keys[0]]) details[keys[0]] = {};
+          details[keys[0]][keys[1]] = value;
+        }
+      }
+    });
+    if (Object.keys(details).length > 0) milestone.details = details;
+    return milestone;
+  }).filter(m => m.id);
+};
 
     const getColor = (type, isRisk, isCatalyst, isOutcome) => {
       if (isOutcome || isCatalyst) return { bg: 'var(--green)', dim: 'var(--green-dim)' };
